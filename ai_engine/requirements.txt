@@ -1,0 +1,7 @@
+# AI engine dependencies (install from repo root: pip install -r ai_engine/requirements.txt)
+pydantic>=2.5.0
+pytesseract>=0.3.10
+Pillow>=10.0.0
+pdf2image>=1.16.0
+httpx>=0.26.0
+tenacity>=8.2.0

@@ -1,0 +1,9 @@
+{
+  "name": "bharatledger-ai",
+  "private": true,
+  "scripts": {
+    "start": "py start.py",
+    "dev": "py start.py"
+  },
+  "description": "Single-command dev start: Docker + backend + frontend"
+}
