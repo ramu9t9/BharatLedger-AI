@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { BarChart3, Download, Loader2, FileJson } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "@/components/StatCard";
-import { gstApi, reportApi, businessApi } from "@/api/client";
+import { gstApi, reportApi } from "@/api/client";
 import { formatCurrency, downloadJson } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
 import {
@@ -21,16 +21,12 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { Chart, ArrowDown2, MoneyRecive, Wallet, Receipt1, Danger } from "iconsax-react";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export default function Reports() {
   const selectedBusiness = localStorage.getItem("selectedBusiness");
-
-  const { data: businesses } = useQuery({
-    queryKey: ["businesses"],
-    queryFn: businessApi.getAll,
-  });
 
   const { data: liability, isLoading: liabilityLoading } = useQuery({
     queryKey: ["gst-liability", selectedBusiness],
@@ -69,10 +65,10 @@ export default function Reports() {
     },
   });
 
-  if (!selectedBusiness || !businesses || businesses.length === 0) {
+  if (!selectedBusiness) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <BarChart3 className="h-12 w-12 text-muted-foreground" />
+        <Chart variant="Bulk" className="h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No business selected</h3>
         <p className="text-sm text-muted-foreground">Select a business from the sidebar to view reports</p>
       </div>
@@ -245,7 +241,7 @@ export default function Reports() {
                   {gstr1Mutation.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <Download className="mr-2 h-4 w-4" />
+                    <ArrowDown2 variant="Outline" className="mr-2 h-4 w-4" />
                   )}
                   Download JSON
                 </Button>
@@ -265,7 +261,7 @@ export default function Reports() {
                   {gstr3bMutation.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <Download className="mr-2 h-4 w-4" />
+                    <ArrowDown2 variant="Outline" className="mr-2 h-4 w-4" />
                   )}
                   Download JSON
                 </Button>

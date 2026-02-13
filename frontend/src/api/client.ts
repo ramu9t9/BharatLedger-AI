@@ -2,13 +2,14 @@ import axios, { AxiosError } from "axios";
 import { toast } from "@/components/ui/toast";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 10000;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000, // 10 second timeout
+  timeout: API_TIMEOUT,
 });
 
 // Request interceptor - add auth token
@@ -82,6 +83,20 @@ export const businessApi = {
 // Invoices
 export type InvoiceStatus = "UPLOADED" | "PROCESSING" | "EXTRACTED" | "NEEDS_REVIEW" | "FAILED";
 
+export interface InvoiceLineItem {
+  id?: string;
+  description: string;
+  hsn_sac: string;
+  gst_rate: number;
+  qty: number;
+  rate: number;
+  taxable_value: number;
+  cgst?: number;
+  sgst?: number;
+  igst?: number;
+  total?: number;
+}
+
 export interface Invoice {
   id: string;
   business_id: string;
@@ -93,6 +108,7 @@ export interface Invoice {
   extracted_json?: Record<string, unknown>;
   processed_at?: string;
   created_at: string;
+  is_corrected?: boolean;
 }
 
 export const invoiceApi = {
@@ -114,8 +130,15 @@ export const invoiceApi = {
     });
     return response.data;
   },
-  update: async (id: string, data: { extracted_json?: Record<string, unknown>; status?: InvoiceStatus }): Promise<Invoice> => {
+  update: async (id: string, data: { extracted_json?: Record<string, unknown>; status?: InvoiceStatus; is_corrected?: boolean }): Promise<Invoice> => {
     const response = await api.patch(`/invoices/${id}`, data);
+    return response.data;
+  },
+  updateLineItem: async (id: string, lineItems: InvoiceLineItem[]): Promise<Invoice> => {
+    const response = await api.patch(`/invoices/${id}`, {
+      extracted_json: { line_items: lineItems },
+      is_corrected: true
+    });
     return response.data;
   },
   process: async (id: string): Promise<Invoice> => {
@@ -178,9 +201,55 @@ export interface GSTLiability {
   tax_payable: number;
 }
 
+export interface GSTSummary {
+  total_sales: number;
+  total_purchases: number;
+  output_gst: number;
+  input_gst: number;
+  net_gst_payable: number;
+  period_month: string;
+}
+
+export interface VendorGST {
+  vendor_name: string;
+  vendor_gstin?: string;
+  total_purchase: number;
+  gstin_missing: boolean;
+  gstin_invalid: boolean;
+  percentage_share: number;
+}
+
+export interface ITCSummary {
+  total_itc: number;
+  risk_flagged_vendors: {
+    vendor_name: string;
+    issue: string;
+    amount: number;
+  }[];
+}
+
+export interface ProjectedGSTAlert {
+  current_month_liability: number;
+  previous_month_liability: number;
+  percentage_increase: number;
+  is_warning: boolean;
+}
+
 export const gstApi = {
   getLiability: async (businessId: string): Promise<GSTLiability> => {
     const response = await api.get(`/gst/businesses/${businessId}/liability`);
+    return response.data;
+  },
+  getSummary: async (businessId: string, month?: string): Promise<GSTSummary> => {
+    const response = await api.get(`/gst/summary`, { params: { business_id: businessId, month } });
+    return response.data;
+  },
+  getVendors: async (businessId: string, month?: string): Promise<VendorGST[]> => {
+    const response = await api.get(`/gst/vendors`, { params: { business_id: businessId, month } });
+    return response.data;
+  },
+  getITC: async (businessId: string, month?: string): Promise<ITCSummary> => {
+    const response = await api.get(`/gst/itc`, { params: { business_id: businessId, month } });
     return response.data;
   },
   prepareGSTR1: async (businessId: string, period?: string): Promise<Record<string, unknown>> => {
@@ -189,6 +258,13 @@ export const gstApi = {
   },
   prepareGSTR3B: async (businessId: string, period?: string): Promise<Record<string, unknown>> => {
     const response = await api.post("/gst/gstr3b/prepare", { business_id: businessId, period });
+    return response.data;
+  },
+  exportCAPack: async (businessId: string, month: string): Promise<Blob> => {
+    const response = await api.get(`/gst/export/ca-pack`, { 
+      params: { business_id: businessId, month },
+      responseType: 'blob'
+    });
     return response.data;
   },
 };

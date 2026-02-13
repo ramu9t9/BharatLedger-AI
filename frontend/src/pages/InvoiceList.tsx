@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileText, Search, Filter, Plus, Trash2 } from "lucide-react";
+import { Search, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { invoiceApi, businessApi } from "@/api/client";
 import { formatDate } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
+import { SearchNormal, Add, Trash, DocumentText, Filter } from "iconsax-react";
 
 export default function InvoiceList() {
   const queryClient = useQueryClient();
@@ -74,7 +75,7 @@ export default function InvoiceList() {
         </div>
         <Button asChild>
           <Link to="/invoices/upload">
-            <Plus className="mr-2 h-4 w-4" />
+            <Add variant="Outline" className="mr-2 h-4 w-4" />
             Upload Invoice
           </Link>
         </Button>
@@ -84,7 +85,7 @@ export default function InvoiceList() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-1 items-center gap-2">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <SearchNormal variant="Outline" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search invoices..."
               value={searchQuery}
@@ -94,7 +95,7 @@ export default function InvoiceList() {
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[150px]">
-              <Filter className="mr-2 h-4 w-4" />
+              <Filter variant="Outline" className="mr-2 h-4 w-4" />
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -144,7 +145,7 @@ export default function InvoiceList() {
           ) : filteredInvoices.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted">
-                <FileText className="h-7 w-7 text-muted-foreground" />
+                <DocumentText variant="Bulk" className="h-7 w-7 text-muted-foreground" />
               </div>
               <h3 className="mt-5 text-lg font-semibold">No invoices found</h3>
               <p className="mt-2 text-center text-sm text-muted-foreground max-w-sm">
@@ -170,7 +171,7 @@ export default function InvoiceList() {
                     className="flex flex-1 min-w-0 items-center gap-4"
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                      <FileText className="h-5 w-5 text-primary" />
+                      <DocumentText variant="Bulk" className="h-5 w-5 text-primary" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium truncate">{invoice.file_name}</p>
@@ -189,7 +190,7 @@ export default function InvoiceList() {
                       className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                       title="Delete invoice"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash variant="Outline" className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

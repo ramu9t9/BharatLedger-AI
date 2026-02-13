@@ -6,7 +6,8 @@ interface StatCardProps {
   title: string;
   value: string | number;
   description?: string;
-  icon?: LucideIcon;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  icon?: LucideIcon | React.ComponentType<any>;
   trend?: {
     value: number;
     isPositive: boolean;

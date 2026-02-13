@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, String, Text, ForeignKey, func
+from sqlalchemy import Column, DateTime, Date, String, Text, ForeignKey, Boolean, func
 from sqlalchemy.dialects.postgresql import JSONB, ENUM
 from app.db.base import Base
 import enum
@@ -25,5 +25,8 @@ class Invoice(Base):
     raw_text = Column(Text, default="")
     extracted_json = Column(JSONB, default=dict)
     processed_at = Column(DateTime(timezone=True), default=None)
+    is_corrected = Column(Boolean, default=False, nullable=False)
+    corrected_at = Column(DateTime(timezone=True), default=None)
+    invoice_date = Column(Date, default=None)  # Denormalized from extracted_json for indexing
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

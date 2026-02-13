@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, ForeignKey
+from sqlalchemy import Column, String, Float, Boolean, DateTime, ForeignKey, func
 from sqlalchemy.dialects.postgresql import JSONB
 from app.db.base import Base
 
@@ -17,3 +17,5 @@ class InvoiceLineItem(Base):
     gst_rate = Column(Float, default=0.0)
     gst_breakdown = Column(JSONB, default=dict)  # {cgst, sgst, igst}
     total = Column(Float, default=0.0)
+    is_corrected = Column(Boolean, default=False, nullable=False)
+    corrected_at = Column(DateTime(timezone=True), default=None)

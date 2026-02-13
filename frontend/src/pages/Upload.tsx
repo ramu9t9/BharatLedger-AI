@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, CheckCircle2, AlertCircle, FileText } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import { FileDropzone } from "@/components/FileDropzone";
 import { StatusBadge } from "@/components/StatusBadge";
 import { invoiceApi, businessApi } from "@/api/client";
 import { toast } from "@/components/ui/toast";
+import { TickCircle, InfoCircle } from "iconsax-react";
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -159,9 +160,9 @@ export default function Upload() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               {uploadResult.status === "success" ? (
-                <CheckCircle2 className="h-8 w-8 text-green-500" />
+                <TickCircle variant="Bulk" className="h-8 w-8 text-green-500" />
               ) : (
-                <AlertCircle className="h-8 w-8 text-red-500" />
+                <InfoCircle variant="Bulk" className="h-8 w-8 text-red-500" />
               )}
               <div className="flex-1">
                 <p className="font-medium">{uploadResult.message}</p>

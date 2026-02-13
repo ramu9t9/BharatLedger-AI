@@ -11,9 +11,20 @@ import Upload from "./pages/Upload";
 import CreateBusiness from "./pages/CreateBusiness";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import { Loader2 } from "lucide-react";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  // Show loading spinner while checking auth status
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }

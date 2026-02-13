@@ -89,6 +89,7 @@ export function FileDropzone({
             onChange={handleFileInput}
             className="absolute inset-0 cursor-pointer opacity-0"
             disabled={isUploading}
+            aria-label="Upload invoice file"
           />
           <div className="flex flex-col items-center gap-2 text-center">
             {isUploading ? (

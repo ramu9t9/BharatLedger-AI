@@ -48,7 +48,12 @@ export default function Layout() {
   const location = useLocation();
   const { logout, user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('darkMode') === 'true';
+    }
+    return false;
+  });
 
   const { data: businesses, isLoading } = useQuery({
     queryKey: ["businesses"],
@@ -79,8 +84,10 @@ export default function Layout() {
   };
 
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    document.documentElement.classList.toggle("dark", !darkMode);
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    document.documentElement.classList.toggle("dark", newMode);
+    localStorage.setItem("darkMode", String(newMode));
   };
 
   const handleLogout = () => {
