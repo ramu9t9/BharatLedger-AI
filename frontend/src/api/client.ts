@@ -1,106 +1,204 @@
-const API_BASE = import.meta.env.VITE_API_URL || "";
+import axios, { AxiosError } from "axios";
+import { toast } from "@/components/ui/toast";
 
-function getToken(): string | null {
-  return localStorage.getItem("token");
-}
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
-export async function api<T>(
-  path: string,
-  options: RequestInit & { body?: object } = {}
-): Promise<T> {
-  const { body, ...rest } = options;
-  const headers: HeadersInit = {
-    ...(rest.headers as Record<string, string>),
-  };
-  const token = getToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  if (body && typeof body === "object" && !(body instanceof FormData)) {
-    headers["Content-Type"] = "application/json";
-  }
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...rest,
-    headers,
-    body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || String(err));
-  }
-  return res.json();
-}
-
-export const auth = {
-  login: (email: string, password: string) =>
-    api<{ access_token: string }>("/api/v1/auth/login", { method: "POST", body: { email, password } }),
-  signup: (email: string, password: string, full_name: string) =>
-    api<{ id: string; email: string }>("/api/v1/auth/signup", {
-      method: "POST",
-      body: { email, password, full_name },
-    }),
-};
-
-export const businesses = {
-  list: () => api<{ id: string; name: string; gstin: string }[]>("/api/v1/businesses"),
-  create: (data: { name: string; gstin?: string; business_type?: string; address?: string }) =>
-    api<{ id: string; name: string }>("/api/v1/businesses", { method: "POST", body: data }),
-  get: (id: string) => api<{ id: string; name: string; gstin: string }>(`/api/v1/businesses/${id}`),
-};
-
-export const invoices = {
-  list: (businessId?: string) =>
-    api<Invoice[]>(
-      businessId ? `/api/v1/invoices?business_id=${businessId}` : "/api/v1/invoices"
-    ),
-  get: (id: string) => api<Invoice>(`/api/v1/invoices/${id}`),
-  upload: (businessId: string, file: File) => {
-    const form = new FormData();
-    form.append("business_id", businessId);
-    form.append("file", file);
-    return api<Invoice>("/api/v1/invoices", { method: "POST", body: form });
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
   },
-  update: (id: string, data: { extracted_json?: object; status?: string }) =>
-    api<Invoice>(`/api/v1/invoices/${id}`, { method: "PATCH", body: data }),
-  process: (id: string) =>
-    api<Invoice>(`/api/v1/invoices/${id}/process`, { method: "POST" }),
+  timeout: 10000, // 10 second timeout
+});
+
+// Request interceptor - add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor - handle errors
+api.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError<{ detail?: string }>) => {
+    const message = error.response?.data?.detail || error.message || "An error occurred";
+    
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+      toast({ title: "Session expired", description: "Please login again", variant: "error" });
+    } else {
+      toast({ title: "Error", description: message, variant: "error" });
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// Auth
+export const authApi = {
+  signup: async (data: { email: string; password: string; full_name: string }) => {
+    const response = await api.post("/auth/signup", data);
+    return response.data;
+  },
+  login: async (data: { email: string; password: string }) => {
+    const response = await api.post("/auth/login", data);
+    return response.data;
+  },
 };
+
+// Businesses
+export interface Business {
+  id: string;
+  name: string;
+  gstin?: string;
+  business_type?: string;
+  address?: string;
+  user_id?: string;
+  created_at?: string;
+}
+
+export const businessApi = {
+  getAll: async (): Promise<Business[]> => {
+    const response = await api.get("/businesses");
+    return response.data;
+  },
+  getById: async (id: string): Promise<Business> => {
+    const response = await api.get(`/businesses/${id}`);
+    return response.data;
+  },
+  create: async (data: Partial<Business>): Promise<Business> => {
+    const response = await api.post("/businesses", data);
+    return response.data;
+  },
+};
+
+// Invoices
+export type InvoiceStatus = "UPLOADED" | "PROCESSING" | "EXTRACTED" | "NEEDS_REVIEW" | "FAILED";
 
 export interface Invoice {
   id: string;
   business_id: string;
   file_name: string;
-  content_type: string;
-  status: string;
-  error_message: string | null;
-  raw_text: string | null;
-  extracted_json: Record<string, unknown>;
-  processed_at: string | null;
+  content_type?: string;
+  status: InvoiceStatus;
+  error_message?: string;
+  raw_text?: string;
+  extracted_json?: Record<string, unknown>;
+  processed_at?: string;
   created_at: string;
 }
 
-export const reports = {
-  pl: (businessId?: string) =>
-    api<{ income: number; expenses_by_category: Record<string, number>; total_expenses: number; net: number }>(
-      businessId ? `/api/v1/reports/pl?business_id=${businessId}` : "/api/v1/reports/pl"
-    ),
-  expenses: (businessId?: string) =>
-    api<{ by_category: Record<string, number> }>(
-      businessId ? `/api/v1/reports/expenses?business_id=${businessId}` : "/api/v1/reports/expenses"
-    ),
+export const invoiceApi = {
+  getAll: async (params?: { business_id?: string }): Promise<Invoice[]> => {
+    const response = await api.get("/invoices", { params });
+    return response.data;
+  },
+  getById: async (id: string): Promise<Invoice> => {
+    const response = await api.get(`/invoices/${id}`);
+    return response.data;
+  },
+  upload: async (businessId: string, file: File): Promise<Invoice> => {
+    const formData = new FormData();
+    formData.append("business_id", businessId);
+    formData.append("file", file);
+    const response = await api.post("/invoices", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 120000, // 2 min - OCR + LLM can take 30–60s
+    });
+    return response.data;
+  },
+  update: async (id: string, data: { extracted_json?: Record<string, unknown>; status?: InvoiceStatus }): Promise<Invoice> => {
+    const response = await api.patch(`/invoices/${id}`, data);
+    return response.data;
+  },
+  process: async (id: string): Promise<Invoice> => {
+    const response = await api.post(`/invoices/${id}/process`, undefined, {
+      timeout: 120000, // 2 min - OCR + LLM can take 30–60s
+    });
+    return response.data;
+  },
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/invoices/${id}`);
+  },
 };
 
-export const gst = {
-  liability: (businessId: string) =>
-    api<{ output_tax: number; itc: number; tax_payable: number }>(
-      `/api/v1/gst/businesses/${businessId}/liability`
-    ),
-  prepareGstr1: (businessId: string) =>
-    api<Record<string, unknown>>("/api/v1/gst/gstr1/prepare", {
-      method: "POST",
-      body: { business_id: businessId },
-    }),
-  prepareGstr3b: (businessId: string) =>
-    api<Record<string, unknown>>("/api/v1/gst/gstr3b/prepare", {
-      method: "POST",
-      body: { business_id: businessId },
-    }),
+// Reports
+export interface PLReport {
+  period_start: string;
+  period_end: string;
+  total_income: number;
+  total_expenses: number;
+  net_profit: number;
+}
+
+export interface ExpenseReport {
+  category: string;
+  total: number;
+  count: number;
+  gst_total: number;
+}
+
+export const reportApi = {
+  getPL: async (params?: { business_id?: string; period_start?: string; period_end?: string }): Promise<PLReport> => {
+    const response = await api.get("/reports/pl", { params });
+    const d = response.data as { income?: number; total_expenses?: number; net?: number; period_start?: string; period_end?: string };
+    return {
+      period_start: d.period_start ?? params?.period_start ?? new Date().toISOString().split('T')[0],
+      period_end: d.period_end ?? params?.period_end ?? new Date().toISOString().split('T')[0],
+      total_income: d.income ?? 0,
+      total_expenses: d.total_expenses ?? 0,
+      net_profit: d.net ?? 0,
+    };
+  },
+  getExpenses: async (params?: { business_id?: string }): Promise<ExpenseReport[]> => {
+    const response = await api.get("/reports/expenses", { params });
+    const d = response.data as { by_category?: Record<string, number> };
+    const byCat = d.by_category || {};
+    return Object.entries(byCat).map(([category, total]) => ({
+      category,
+      total: Number(total) || 0,
+      count: 0,
+      gst_total: 0,
+    }));
+  },
 };
+
+// GST
+export interface GSTLiability {
+  business_id: string;
+  output_tax: number;
+  itc: number;
+  tax_payable: number;
+}
+
+export const gstApi = {
+  getLiability: async (businessId: string): Promise<GSTLiability> => {
+    const response = await api.get(`/gst/businesses/${businessId}/liability`);
+    return response.data;
+  },
+  prepareGSTR1: async (businessId: string, period?: string): Promise<Record<string, unknown>> => {
+    const response = await api.post("/gst/gstr1/prepare", { business_id: businessId, period });
+    return response.data;
+  },
+  prepareGSTR3B: async (businessId: string, period?: string): Promise<Record<string, unknown>> => {
+    const response = await api.post("/gst/gstr3b/prepare", { business_id: businessId, period });
+    return response.data;
+  },
+};
+
+// Health
+export const healthApi = {
+  check: async (): Promise<{ status: string }> => {
+    const response = await api.get("/health");
+    return response.data;
+  },
+};
+
+export default api;

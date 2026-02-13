@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 import Layout from "./components/Layout";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
@@ -9,10 +10,11 @@ import InvoiceDetail from "./pages/InvoiceDetail";
 import Upload from "./pages/Upload";
 import CreateBusiness from "./pages/CreateBusiness";
 import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { token } = useAuth();
-  if (!token) return <Navigate to="/login" replace />;
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
@@ -34,8 +36,10 @@ export default function App() {
         <Route path="invoices/upload" element={<Upload />} />
         <Route path="invoices/:id" element={<InvoiceDetail />} />
         <Route path="businesses/new" element={<CreateBusiness />} />
-        <Route path="reports" element={<Reports />} />
+        <Route path="reports" element={<ErrorBoundary><Reports /></ErrorBoundary>} />
+        <Route path="settings" element={<Settings />} />
       </Route>
+      <Route path="upload" element={<Navigate to="/invoices/upload" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

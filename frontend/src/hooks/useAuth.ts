@@ -1,19 +1,69 @@
-import { useCallback, useState } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { authApi } from "@/api/client";
 
-const TOKEN_KEY = "token";
+interface User {
+  id: string;
+  email: string;
+}
 
 export function useAuth() {
-  const [token, setTokenState] = useState<string | null>(() =>
-    localStorage.getItem(TOKEN_KEY)
-  );
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
+  const [isLoading, setIsLoading] = useState(false);
 
-  const setToken = useCallback((t: string | null) => {
-    if (t) localStorage.setItem(TOKEN_KEY, t);
-    else localStorage.removeItem(TOKEN_KEY);
-    setTokenState(t);
+  const login = useCallback(async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const response = await authApi.login({ email, password });
+      const accessToken = response.access_token;
+      localStorage.setItem("token", accessToken);
+      setToken(accessToken);
+      setUser({ id: "", email }); // Will be fetched from token or session
+      return true;
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const logout = useCallback(() => setToken(null), [setToken]);
+  const signup = useCallback(async (email: string, password: string, fullName: string) => {
+    setIsLoading(true);
+    try {
+      await authApi.signup({ email, password, full_name: fullName });
+      // Auto-login after signup
+      await login(email, password);
+      return true;
+    } catch (error) {
+      console.error("Signup failed:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [login]);
 
-  return { token, setToken, logout };
+  const logout = useCallback(() => {
+    localStorage.removeItem("token");
+    setToken(null);
+    setUser(null);
+  }, []);
+
+  useEffect(() => {
+    if (token) {
+      // Decode token or fetch user profile
+      // For now, we'll just set a placeholder
+      setUser({ id: "", email: "" });
+    }
+  }, [token]);
+
+  return {
+    user,
+    token,
+    isAuthenticated: !!token,
+    isLoading,
+    login,
+    signup,
+    logout,
+  };
 }

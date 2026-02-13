@@ -73,10 +73,20 @@ def extract_from_text(raw_text: str) -> dict[str, Any]:
         "temperature": 0.1,
     }
 
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+    }
+    if os.environ.get("OPENROUTER_API_KEY"):
+        if os.environ.get("OPENROUTER_REFERER"):
+            headers["HTTP-Referer"] = os.environ.get("OPENROUTER_REFERER")
+        if os.environ.get("OPENROUTER_TITLE"):
+            headers["X-Title"] = os.environ.get("OPENROUTER_TITLE")
+
     with httpx.Client(timeout=60.0) as client:
         resp = client.post(
             f"{base}/chat/completions",
-            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            headers=headers,
             json=payload,
         )
         resp.raise_for_status()

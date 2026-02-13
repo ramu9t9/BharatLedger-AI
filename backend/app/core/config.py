@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     )
 
     # Database
-    database_url: str = "postgresql+psycopg://bharatledger:bharatledger@localhost:5432/bharatledger"
+    database_url: str = "postgresql+psycopg://bharatledger:bharatledger@localhost:5433/bharatledger"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"

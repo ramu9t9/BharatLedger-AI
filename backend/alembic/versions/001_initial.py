@@ -67,12 +67,12 @@ def upgrade() -> None:
         sa.Column("description", sa.String(500), server_default=""),
         sa.Column("hsn_sac", sa.String(20), server_default=""),
         sa.Column("category", sa.String(128), server_default=""),
-        sa.Column("qty", sa.Float(), server_default=1.0),
-        sa.Column("unit_price", sa.Float(), server_default=0.0),
-        sa.Column("taxable_value", sa.Float(), server_default=0.0),
-        sa.Column("gst_rate", sa.Float(), server_default=0.0),
+        sa.Column("qty", sa.Float(), server_default=sa.text("1.0")),
+        sa.Column("unit_price", sa.Float(), server_default=sa.text("0.0")),
+        sa.Column("taxable_value", sa.Float(), server_default=sa.text("0.0")),
+        sa.Column("gst_rate", sa.Float(), server_default=sa.text("0.0")),
         sa.Column("gst_breakdown", postgresql.JSONB(astext_type=sa.Text()), server_default="{}"),
-        sa.Column("total", sa.Float(), server_default=0.0),
+        sa.Column("total", sa.Float(), server_default=sa.text("0.0")),
     )
     op.create_index("ix_invoice_line_items_invoice_id", "invoice_line_items", ["invoice_id"])
 
@@ -80,7 +80,7 @@ def upgrade() -> None:
         "expense_categories",
         sa.Column("id", sa.String(36), primary_key=True),
         sa.Column("name", sa.String(128), nullable=False),
-        sa.Column("default_gst_rate", sa.Float(), server_default="18.0"),
+        sa.Column("default_gst_rate", sa.Float(), server_default=sa.text("18.0")),
         sa.Column("hsn_keywords", sa.String(500), server_default=""),
     )
     op.create_index("ix_expense_categories_name", "expense_categories", ["name"], unique=True)

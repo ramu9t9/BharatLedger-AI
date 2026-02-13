@@ -82,9 +82,13 @@ From project root:
 
 ```bash
 pip install -r backend/requirements.txt
+pip install -e ai_engine
+cd frontend && npm install && cd ..
 ```
 
-This installs FastAPI, SQLAlchemy, and other backend deps. The backend app is created in Phase 2.
+This installs FastAPI, SQLAlchemy, and other backend deps. The AI engine (`ai_engine`) handles invoice OCR and PDF processing.
+
+**PDF processing:** Text-based PDFs use PyMuPDF (no extra setup). Image-based/scanned PDFs need **Tesseract** for OCR. See [docs/OCR_SETUP.md](OCR_SETUP.md) for Tesseract installation on Windows.
 
 ### 7. Database migrations (after Phase 2)
 

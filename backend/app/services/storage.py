@@ -44,3 +44,10 @@ def get_content_type(file_path: str) -> str:
     if ext == ".webp":
         return "image/webp"
     return "application/octet-stream"
+
+
+def delete_file(file_path: str) -> None:
+    """Delete a stored file by path (local storage). No-op if file does not exist."""
+    path = Path(file_path)
+    if path.exists() and path.is_file():
+        path.unlink()

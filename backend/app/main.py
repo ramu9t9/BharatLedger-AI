@@ -1,3 +1,14 @@
+"""Load .env into os.environ so ai_engine and other code see OPENROUTER_API_KEY etc."""
+from pathlib import Path
+try:
+    from dotenv import load_dotenv
+    _root = Path(__file__).resolve().parents[2]
+    _backend = Path(__file__).resolve().parents[1]
+    load_dotenv(_root / ".env")
+    load_dotenv(_backend / ".env")
+except Exception:
+    pass
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

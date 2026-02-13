@@ -7,10 +7,26 @@ from app.db.session import get_db
 from app.db.models import Invoice
 from app.schemas.invoice import InvoiceResponse, InvoiceUpdate
 from app.api.deps import get_current_user_id
-from app.services.storage import save_upload, read_file, get_content_type
+from app.services.storage import save_upload, read_file, get_content_type, delete_file
 from app.services.invoice_service import process_invoice_file
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
+
+
+def _unwrap_error_message(exc: BaseException) -> str:
+    """Get a user-friendly error message, unwrapping RetryError and similar."""
+    try:
+        from tenacity import RetryError
+        if isinstance(exc, RetryError) and getattr(exc, "last_attempt", None):
+            last = exc.last_attempt
+            if last and getattr(last, "failed", False) and last.exception():
+                return str(last.exception())
+    except Exception:
+        pass
+    cause = getattr(exc, "__cause__", None)
+    if cause:
+        return _unwrap_error_message(cause)
+    return str(exc)
 
 
 def _invoice_for_user(db: Session, invoice_id: str, user_id: str) -> Invoice | None:
@@ -62,7 +78,7 @@ async def upload_invoice(
         inv.processed_at = datetime.now(timezone.utc)
     except Exception as e:
         inv.status = "FAILED"
-        inv.error_message = str(e)
+        inv.error_message = _unwrap_error_message(e)
     db.commit()
     db.refresh(inv)
     return inv
@@ -118,6 +134,25 @@ def update_invoice(
     return inv
 
 
+@router.delete("/{invoice_id}", status_code=204)
+def delete_invoice(
+    invoice_id: str,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    """Delete an invoice and its stored file."""
+    inv = _invoice_for_user(db, invoice_id, user_id)
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    try:
+        delete_file(inv.file_path)
+    except OSError:
+        pass  # ignore if file already missing
+    db.delete(inv)
+    db.commit()
+    return None
+
+
 @router.post("/{invoice_id}/process", response_model=InvoiceResponse)
 def process_invoice(
     invoice_id: str,
@@ -138,7 +173,7 @@ def process_invoice(
         inv.error_message = ""
     except Exception as e:
         inv.status = "FAILED"
-        inv.error_message = str(e)
+        inv.error_message = _unwrap_error_message(e)
     db.commit()
     db.refresh(inv)
     return inv
